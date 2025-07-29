@@ -10,26 +10,29 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
-import java.util.ArrayList;
+import java.util.List;
 
 public class CustomAdapter extends RecyclerView.Adapter<CustomAdapter.MyViewHolder> {
     Context context;
-    ArrayList<String> id, time, value;
+    List<DatabaseHelper.WaterRecord> waterRecords;
     private OnItemDeleteListener deleteListener;
     
     public interface OnItemDeleteListener {
-        void onItemDelete(int position);
+        void onItemDelete(int recordId);
     }
     
-    public CustomAdapter(Context context, ArrayList<String> id, ArrayList<String> time, ArrayList<String> value) {
-        this.id = id;
-        this.time = time;
-        this.value = value;
+    public CustomAdapter(Context context, List<DatabaseHelper.WaterRecord> waterRecords) {
         this.context = context;
+        this.waterRecords = waterRecords;
     }
     
     public void setOnItemDeleteListener(OnItemDeleteListener listener) {
         this.deleteListener = listener;
+    }
+    
+    public void updateRecords(List<DatabaseHelper.WaterRecord> newRecords) {
+        this.waterRecords = newRecords;
+        notifyDataSetChanged();
     }
     
     @NonNull
@@ -42,20 +45,21 @@ public class CustomAdapter extends RecyclerView.Adapter<CustomAdapter.MyViewHold
 
     @Override
     public void onBindViewHolder(@NonNull CustomAdapter.MyViewHolder holder, int position) {
-        holder.TIME.setText(time.get(position));
-        holder.VALUE.setText(value.get(position));
+        DatabaseHelper.WaterRecord record = waterRecords.get(position);
+        holder.TIME.setText(record.time);
+        holder.VALUE.setText(record.amount + " ml");
         
         // Add click listener for delete functionality
         holder.menuButton.setOnClickListener(v -> {
             if (deleteListener != null) {
-                deleteListener.onItemDelete(position);
+                deleteListener.onItemDelete(record.id);
             }
         });
     }
 
     @Override
     public int getItemCount() {
-        return id.size();
+        return waterRecords != null ? waterRecords.size() : 0;
     }
 
     public class MyViewHolder extends RecyclerView.ViewHolder {

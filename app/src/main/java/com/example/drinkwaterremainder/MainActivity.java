@@ -1,8 +1,10 @@
 package com.example.drinkwaterremainder;
 
 import android.app.Dialog;
-import android.content.SharedPreferences;
+import android.content.Intent;
 import android.os.Bundle;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
@@ -22,6 +24,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 
 import me.bastanfar.semicirclearcprogressbar.SemiCircleArcProgressBar;
@@ -31,27 +34,24 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     TextView textComplete,textTarget,textQuantity;
     ImageView addButton,mugButton,switchCup;
     LinearLayout addButtonLayout;
-    int quantity,target,complete,percent,ID=0;
+    int quantity,target,complete,percent;
     SemiCircleArcProgressBar ProgressBar;
-    ArrayList<String> id,time,value;
+    List<DatabaseHelper.WaterRecord> waterRecords;
     CustomAdapter customAdapter;
     RecyclerView recyclerView;
     
-    // SharedPreferences for data persistence
-    private SharedPreferences sharedPreferences;
-    private static final String PREFS_NAME = "DrinkWaterPrefs";
-    private static final String KEY_COMPLETE = "complete";
-    private static final String KEY_TARGET = "target";
-    private static final String KEY_QUANTITY = "quantity";
-    private static final String KEY_ID_COUNT = "id_count";
-    private static final String KEY_RECORDS = "records";
+    // Database helper for data persistence
+    private DatabaseHelper databaseHelper;
+    
+    // Notification helper
+    private NotificationHelper notificationHelper;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         
         initializeViews();
-        initializeSharedPreferences();
+        initializeDatabase();
         loadSavedData();
         setupRecyclerView();
         updateProgressBar();
@@ -71,57 +71,42 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         recyclerView = (RecyclerView) findViewById(R.id.recyclerViewID);
         switchCup = (ImageView) findViewById(R.id.switchCupID);
 
-        id= new ArrayList<>();
-        time = new ArrayList<>();
-        value = new ArrayList<>();
+        waterRecords = new ArrayList<>();
     }
     
-    private void initializeSharedPreferences() {
-        sharedPreferences = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+    private void initializeDatabase() {
+        databaseHelper = new DatabaseHelper(this);
+        notificationHelper = new NotificationHelper(this);
+        
+        // Initialize today's record if needed (this handles daily reset automatically)
+        databaseHelper.initializeTodaysRecord();
+        
+        checkDailyReset();
+    }
+    
+    private void checkDailyReset() {
+        // The database automatically handles daily reset by creating new records for each day
+        // This method can be used for additional daily reset logic if needed
+        
+        // For example, we could show a daily motivation message on the first app open each day
+        // or reset notification preferences, etc.
     }
     
     private void loadSavedData() {
-        complete = sharedPreferences.getInt(KEY_COMPLETE, 0);
-        target = sharedPreferences.getInt(KEY_TARGET, 2000); // Default 2000ml
-        quantity = sharedPreferences.getInt(KEY_QUANTITY, 250); // Default 250ml
-        ID = sharedPreferences.getInt(KEY_ID_COUNT, 0);
+        complete = databaseHelper.getTodaysTotalIntake();
+        target = databaseHelper.getDailyTarget();
+        quantity = databaseHelper.getDefaultQuantity();
         
         textComplete.setText(String.valueOf(complete));
         textTarget.setText(String.valueOf(target));
         textQuantity.setText(String.valueOf(quantity));
         
-        // Load saved records (simplified - in a real app you'd use a database)
-        loadRecordsFromPrefs();
-    }
-    
-    private void loadRecordsFromPrefs() {
-        String recordsData = sharedPreferences.getString(KEY_RECORDS, "");
-        if (!recordsData.isEmpty()) {
-            String[] records = recordsData.split(";");
-            for (String record : records) {
-                if (!record.isEmpty()) {
-                    String[] parts = record.split(",");
-                    if (parts.length == 3) {
-                        id.add(parts[0]);
-                        time.add(parts[1]);
-                        value.add(parts[2]);
-                    }
-                }
-            }
-        }
-    }
-    
-    private void saveRecordsToPrefs() {
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < id.size(); i++) {
-            if (i > 0) sb.append(";");
-            sb.append(id.get(i)).append(",").append(time.get(i)).append(",").append(value.get(i));
-        }
-        sharedPreferences.edit().putString(KEY_RECORDS, sb.toString()).apply();
+        // Load today's records
+        waterRecords = databaseHelper.getTodaysRecords();
     }
     
     private void setupRecyclerView() {
-        customAdapter = new CustomAdapter(this, id, time, value);
+        customAdapter = new CustomAdapter(this, waterRecords);
         customAdapter.setOnItemDeleteListener(this::deleteRecord);
         recyclerView.setAdapter(customAdapter);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
@@ -207,31 +192,28 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private void addWaterIntake() {
         try {
             quantity = Integer.parseInt(textQuantity.getText().toString());
-            complete = Integer.parseInt(textComplete.getText().toString());
-            target = Integer.parseInt(textTarget.getText().toString());
+            target = databaseHelper.getDailyTarget();
             
-            int update = quantity + complete;
+            // Add water intake to database
+            databaseHelper.addWaterIntake(quantity);
+            
+            // Get updated totals
+            complete = databaseHelper.getTodaysTotalIntake();
             
             // Update UI
-            textComplete.setText(String.valueOf(update));
+            textComplete.setText(String.valueOf(complete));
             updateProgressBar();
             
-            // Add record
-            ID++;
-            id.add(String.valueOf(ID));
-            value.add(String.valueOf(quantity) + " ml");
-            time.add(getCurrentTime());
+            // Refresh records list
+            waterRecords = databaseHelper.getTodaysRecords();
+            customAdapter.updateRecords(waterRecords);
             
-            customAdapter.notifyDataSetChanged();
-            
-            // Save data
-            saveData();
-            
-            // Show success message
-            if (update >= target) {
+            // Show success message and notifications
+            if (databaseHelper.isTodaysGoalAchieved()) {
+                notificationHelper.showGoalAchievement();
                 Toast.makeText(this, "🎉 Daily goal achieved! Great job!", Toast.LENGTH_LONG).show();
             } else {
-                int remaining = target - update;
+                int remaining = target - complete;
                 Toast.makeText(this, "+" + quantity + "ml added. " + remaining + "ml remaining", Toast.LENGTH_SHORT).show();
             }
             
@@ -245,15 +227,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         return sdf.format(new Date());
     }
     
-    private void saveData() {
-        SharedPreferences.Editor editor = sharedPreferences.edit();
-        editor.putInt(KEY_COMPLETE, Integer.parseInt(textComplete.getText().toString()));
-        editor.putInt(KEY_TARGET, Integer.parseInt(textTarget.getText().toString()));
-        editor.putInt(KEY_QUANTITY, Integer.parseInt(textQuantity.getText().toString()));
-        editor.putInt(KEY_ID_COUNT, ID);
-        editor.apply();
-        
-        saveRecordsToPrefs();
+    private void saveSettings() {
+        // Save settings to database
+        databaseHelper.setDailyTarget(target);
+        databaseHelper.setDefaultQuantity(quantity);
     }
     
     private void showCupSizeDialog() {
@@ -282,7 +259,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 final int size = cupSizes[i];
                 textView.setOnClickListener(v -> {
                     textQuantity.setText(String.valueOf(size));
-                    saveData();
+                    quantity = size;
+                    saveSettings();
                     dialog.dismiss();
                     Toast.makeText(MainActivity.this, "Cup size set to " + size + "ml", Toast.LENGTH_SHORT).show();
                 });
@@ -314,7 +292,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 int customQuantity = Integer.parseInt(inputText);
                 if (customQuantity > 0 && customQuantity <= 2000) {
                     textQuantity.setText(String.valueOf(customQuantity));
-                    saveData();
+                    quantity = customQuantity;
+                    saveSettings();
                     Toast.makeText(this, "Custom quantity set to " + customQuantity + "ml", Toast.LENGTH_SHORT).show();
                 } else {
                     Toast.makeText(this, "Please enter a valid quantity (1-2000ml)", Toast.LENGTH_SHORT).show();
@@ -343,8 +322,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 int newTarget = Integer.parseInt(inputText);
                 if (newTarget > 0 && newTarget <= 10000) {
                     textTarget.setText(String.valueOf(newTarget));
+                    target = newTarget;
                     updateProgressBar();
-                    saveData();
+                    saveSettings();
                     Toast.makeText(this, "Daily target set to " + newTarget + "ml", Toast.LENGTH_SHORT).show();
                 } else {
                     Toast.makeText(this, "Please enter a valid target (1-10000ml)", Toast.LENGTH_SHORT).show();
@@ -358,32 +338,23 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         builder.show();
     }
     
-    private void deleteRecord(int position) {
+    private void deleteRecord(int recordId) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Delete Record");
         builder.setMessage("Are you sure you want to delete this water intake record?");
         
         builder.setPositiveButton("Delete", (dialog, which) -> {
             try {
-                // Extract quantity from value and subtract from complete
-                String valueStr = value.get(position).replace(" ml", "");
-                int recordQuantity = Integer.parseInt(valueStr);
-                int currentComplete = Integer.parseInt(textComplete.getText().toString());
-                int newComplete = Math.max(0, currentComplete - recordQuantity);
+                databaseHelper.deleteWaterRecord(recordId);
                 
-                // Remove from lists
-                id.remove(position);
-                time.remove(position);
-                value.remove(position);
-                
-                // Update UI
-                textComplete.setText(String.valueOf(newComplete));
+                // Refresh data
+                complete = databaseHelper.getTodaysTotalIntake();
+                textComplete.setText(String.valueOf(complete));
                 updateProgressBar();
-                customAdapter.notifyItemRemoved(position);
-                customAdapter.notifyItemRangeChanged(position, id.size());
                 
-                // Save data
-                saveData();
+                // Refresh records
+                waterRecords = databaseHelper.getTodaysRecords();
+                customAdapter.updateRecords(waterRecords);
                 
                 Toast.makeText(this, "Record deleted", Toast.LENGTH_SHORT).show();
                 
@@ -410,27 +381,63 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
     
     private void resetDailyProgress() {
-        // Clear all data
-        complete = 0;
-        ID = 0;
-        id.clear();
-        time.clear();
-        value.clear();
-        
-        // Update UI
-        textComplete.setText("0");
-        updateProgressBar();
-        customAdapter.notifyDataSetChanged();
-        
-        // Save data
-        saveData();
-        
-        Toast.makeText(this, "Daily progress reset", Toast.LENGTH_SHORT).show();
+        // This method is handled automatically by the database daily reset
+        // Since database creates new records each day, no manual reset is needed
+        Toast.makeText(this, "Data resets automatically each day", Toast.LENGTH_SHORT).show();
     }
     
     @Override
     protected void onPause() {
         super.onPause();
-        saveData(); // Save data when app is paused
+        // Settings are saved automatically when changed
+    }
+    
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.main_menu, menu);
+        return true;
+    }
+    
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int id = item.getItemId();
+        
+        if (id == R.id.action_statistics) {
+            Intent intent = new Intent(this, StatisticsActivity.class);
+            startActivity(intent);
+            return true;
+        } else if (id == R.id.action_settings) {
+            showSettingsDialog();
+            return true;
+        }
+        
+        return super.onOptionsItemSelected(item);
+    }
+    
+    private void showSettingsDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Settings");
+        
+        String[] options = {"Set Daily Target", "Set Cup Size", "Enable Notifications", "Reset All Data"};
+        
+        builder.setItems(options, (dialog, which) -> {
+            switch (which) {
+                case 0:
+                    showTargetEditDialog();
+                    break;
+                case 1:
+                    showCupSizeDialog();
+                    break;
+                case 2:
+                    notificationHelper.showHydrationReminder();
+                    Toast.makeText(this, "Notifications enabled!", Toast.LENGTH_SHORT).show();
+                    break;
+                case 3:
+                    showResetDialog();
+                    break;
+            }
+        });
+        
+        builder.show();
     }
 }
