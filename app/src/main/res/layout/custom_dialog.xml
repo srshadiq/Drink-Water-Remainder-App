@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:layout_margin="10dp"
+    >
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Switch cup"
+        android:textSize="22sp"/>
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:weightSum="3"
+            android:orientation="vertical">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:weightSum="3"
+                android:layout_weight="1"
+                android:orientation="horizontal"
+                android:gravity="center"
+                >
+                <TextView
+                    android:id="@+id/textView100ml"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:text="100 ml"
+                    android:textSize="16sp"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:background="?android:attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    />
+                <TextView
+                    android:id="@+id/textView125ml"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:text="125 ml"
+                    android:textSize="16sp"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:background="?android:attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+
+                    />
+                <TextView
+                    android:id="@+id/textView150ml"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:text="150 ml"
+                    android:textSize="16sp"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:background="?android:attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+
+                    />
+
+            </LinearLayout>
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:weightSum="3"
+                android:layout_weight="1"
+                android:orientation="horizontal"
+                android:gravity="center"
+                >
+
+                <TextView
+                    android:id="@+id/textView175ml"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:text="175 ml"
+                    android:textSize="16sp"
+                    android:background="?android:attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+
+                    />
+                <TextView
+                    android:id="@+id/textView200ml"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:text="200 ml"
+                    android:textSize="16sp"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:background="?android:attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+
+                    />
+                <TextView
+                    android:id="@+id/textView300ml"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:text="300 ml"
+                    android:textSize="16sp"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:background="?android:attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+
+                    />
+
+            </LinearLayout>
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:weightSum="3"
+                android:layout_weight="1"
+                android:orientation="horizontal"
+                android:gravity="center"
+                >
+                <TextView
+                    android:id="@+id/textView400ml"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:text="400 ml"
+                    android:textSize="16sp"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:background="?android:attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+
+                    />
+                <TextView
+                    android:id="@+id/textView500ml"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:text="500 ml"
+                    android:textSize="16sp"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:background="?android:attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+
+                    />
+                <TextView
+                    android:id="@+id/textViewCustom"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:text="Customize"
+                    android:textSize="16sp"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:background="?android:attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+
+                    />
+
+            </LinearLayout>
+
+        </LinearLayout>
+    </ScrollView>
+
+
+
+
+</LinearLayout>
